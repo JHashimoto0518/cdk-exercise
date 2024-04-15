@@ -10,7 +10,6 @@ export class VpcEndpointStack extends Stack {
     const vpc = new ec2.Vpc(this, 'DbVpc', {
       vpcName: 'db-vpc',
       ipAddresses: ec2.IpAddresses.cidr('172.16.0.0/16'),
-      natGateways: 1,
       maxAzs: 2,
       subnetConfiguration: [
         {
@@ -21,12 +20,20 @@ export class VpcEndpointStack extends Stack {
         {
           cidrMask: 24,
           name: 'Private',
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED
         }
       ],
       // remove all rules from default security group
       // See: https://docs.aws.amazon.com/config/latest/developerguide/vpc-default-security-group-closed.html
       restrictDefaultSecurityGroup: true,
+    });
+
+    // add private endpoint for Amazon Linux repository on s3
+    vpc.addGatewayEndpoint('S3Endpoint', {
+      service: ec2.GatewayVpcEndpointAwsService.S3,
+      subnets: [
+        { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
+      ]
     });
   }
 }
