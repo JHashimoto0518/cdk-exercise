@@ -15,5 +15,39 @@ export class DynamodbStack extends Stack {
       tableName: 'items',
       removalPolicy: RemovalPolicy.DESTROY, // default RemovalPolicy is RETAIN
     });
+
+    // table with secondary indexes
+    const tableWithIndexes = new Table(this, 'indexedItems', {
+      partitionKey: {
+        name: 'itemId',
+        type: AttributeType.STRING
+      },
+      sortKey: {
+        name: 'count',
+        type: AttributeType.NUMBER
+      },
+      tableName: 'indexedItems',
+      removalPolicy: RemovalPolicy.DESTROY, // default RemovalPolicy is RETAIN
+    });
+
+    tableWithIndexes.addLocalSecondaryIndex({
+      indexName: 'priceIndex',
+      sortKey: {
+        name: 'price',
+        type: AttributeType.NUMBER
+      }
+    });
+
+    tableWithIndexes.addGlobalSecondaryIndex({
+      indexName: 'nameIndex',
+      partitionKey: {
+        name: 'name',
+        type: AttributeType.STRING
+      },
+      sortKey: {
+        name: 'itemId',
+        type: AttributeType.STRING
+      }
+    });
   }
 }
