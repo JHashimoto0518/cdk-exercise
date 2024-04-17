@@ -13,6 +13,8 @@ export class DynamodbStack extends Stack {
         type: AttributeType.STRING
       },
       tableName: 'items',
+      readCapacity: 1,
+      writeCapacity: 1,
       removalPolicy: RemovalPolicy.DESTROY, // default RemovalPolicy is RETAIN
     });
 
@@ -27,6 +29,8 @@ export class DynamodbStack extends Stack {
         type: AttributeType.NUMBER
       },
       tableName: 'indexedItems',
+      readCapacity: 1,
+      writeCapacity: 1,
       removalPolicy: RemovalPolicy.DESTROY, // default RemovalPolicy is RETAIN
     });
 
