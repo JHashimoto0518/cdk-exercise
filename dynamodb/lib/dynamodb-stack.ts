@@ -1,6 +1,6 @@
 import { Stack, StackProps, RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
+import { AttributeType, ProjectionType, Table } from 'aws-cdk-lib/aws-dynamodb';
 
 export class DynamodbStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -51,7 +51,10 @@ export class DynamodbStack extends Stack {
       sortKey: {
         name: 'itemId',
         type: AttributeType.STRING
-      }
+      },
+      projectionType: ProjectionType.INCLUDE,
+      nonKeyAttributes: ['count, price']
     });
+
   }
 }
