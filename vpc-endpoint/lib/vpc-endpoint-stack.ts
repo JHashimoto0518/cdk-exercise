@@ -28,7 +28,7 @@ export class VpcEndpointStack extends Stack {
       restrictDefaultSecurityGroup: true,
     });
 
-    // add private endpoint for Amazon Linux repository on s3
+    // add private endpoint for s3
     vpc.addGatewayEndpoint('S3Endpoint', {
       service: ec2.GatewayVpcEndpointAwsService.S3,
       subnets: [
