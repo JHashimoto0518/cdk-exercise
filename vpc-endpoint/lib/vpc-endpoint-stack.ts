@@ -7,8 +7,8 @@ export class VpcEndpointStack extends Stack {
     super(scope, id, props);
 
     // vpc
-    const vpc = new ec2.Vpc(this, 'DbVpc', {
-      vpcName: 'db-vpc',
+    const vpc = new ec2.Vpc(this, 'Vpc', {
+      vpcName: 'vpc',
       ipAddresses: ec2.IpAddresses.cidr('172.16.0.0/16'),
       maxAzs: 2,
       subnetConfiguration: [
