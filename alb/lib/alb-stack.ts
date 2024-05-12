@@ -4,6 +4,9 @@ import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as elbv2_tg from 'aws-cdk-lib/aws-elasticloadbalancingv2-targets'
 import { Construct } from 'constructs';
 
+// ref: certificate
+// https://tech.dentsusoken.com/entry/replace_web_app_domain_using_cdk
+
 export class AlbStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
