@@ -78,15 +78,12 @@ export class AlbStack extends Stack {
       securityGroup: albSg
     })
 
-    const targets: elbv2_tg.InstanceTarget[] = new Array();
-    targets.push(new elbv2_tg.InstanceTarget(ec2Ins))
-
     const listener = alb.addListener('HttpListener', {
       port: 80,
       protocol: elbv2.ApplicationProtocol.HTTP
     })
     listener.addTargets('AppTarget', {
-      targets,
+      targets: [new elbv2_tg.InstanceTarget(ec2Ins)],
       port: 80
     })
 
