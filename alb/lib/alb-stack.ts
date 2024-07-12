@@ -34,6 +34,18 @@ export class AlbStack extends Stack {
     });
 
     // security group
+    const nlbSg1 = new ec2.SecurityGroup(this, 'NlbSg1', {
+      vpc,
+      allowAllOutbound: true,
+      description: 'security group 1 for nlb'
+    })
+
+    const nlbSg2 = new ec2.SecurityGroup(this, 'NlbSg2', {
+      vpc,
+      allowAllOutbound: true,
+      description: 'security group 2 for nlb'
+    })
+
     const albSg = new ec2.SecurityGroup(this, 'AlbSg', {
       vpc,
       allowAllOutbound: true,
@@ -66,6 +78,16 @@ export class AlbStack extends Stack {
           }),
         },
       ],
+    })
+
+    // nlb
+    const nlb = new elbv2.NetworkLoadBalancer(this, 'Nlb', {
+      vpc,
+      vpcSubnets: {
+        subnets: vpc.publicSubnets
+      },
+      internetFacing: true,
+      securityGroups: [nlbSg1, nlbSg2]
     })
 
     // alb
