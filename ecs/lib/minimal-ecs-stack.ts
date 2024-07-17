@@ -50,6 +50,18 @@ export class MinimalEcsStack extends cdk.Stack {
       },
     });
 
+    // Auto Scaling の設定
+    const scaling = service.autoScaleTaskCount({
+      maxCapacity: 2,
+      minCapacity: 1
+    });
+
+    scaling.scaleOnCpuUtilization('CpuScaling', {
+      targetUtilizationPercent: 80,
+      scaleInCooldown: cdk.Duration.seconds(60),
+      scaleOutCooldown: cdk.Duration.seconds(60)
+    });
+
     // 出力
     new cdk.CfnOutput(this, 'ServiceName', { value: service.serviceName });
     new cdk.CfnOutput(this, 'ServiceArn', { value: service.serviceArn });
