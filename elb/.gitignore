@@ -6,3 +6,8 @@ node_modules
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# Do not persist environment information. Consider uncommenting if using in production
+# https://docs.aws.amazon.com/cdk/v2/guide/context.html#context_methods
+# > Because they're part of your application's state, cdk.json and cdk.context.json must be committed to source control along with the rest of your app's source code. Otherwise, deployments in other environments (for example, a CI pipeline) might produce inconsistent results.
+cdk.context.json

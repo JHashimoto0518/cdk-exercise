@@ -1,7 +1,8 @@
 import { RemovalPolicy, Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
-import * as elbv2_tg from 'aws-cdk-lib/aws-elasticloadbalancingv2-targets'
+import * as elbv2_tg from 'aws-cdk-lib/aws-elasticloadbalancingv2-targets';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 // ref: certificate
@@ -80,6 +81,14 @@ export class AlbStack extends Stack {
       ],
     })
 
+    // access log bucket
+    const accessLogBucket = new s3.Bucket(this, 'AccessLogBucket', {
+      // https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
+      // > The bucket must use Amazon S3-managed keys (SSE-S3).
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      removalPolicy: RemovalPolicy.DESTROY,
+    })
+
     // nlb
     const nlb = new elbv2.NetworkLoadBalancer(this, 'Nlb', {
       vpc,
@@ -99,6 +108,8 @@ export class AlbStack extends Stack {
       },
       securityGroup: albSg
     })
+    // enable access log
+    alb.logAccessLogs(accessLogBucket, 'alb-access-log')
 
     const listener = alb.addListener('HttpListener', {
       port: 80,
@@ -111,6 +122,10 @@ export class AlbStack extends Stack {
 
     new CfnOutput(this, 'AlbTestCommand', {
       value: `curl -I http://${alb.loadBalancerDnsName}`
+    })
+
+    new CfnOutput(this, 'AlbAccessLogBucketName', {
+      value: accessLogBucket.bucketName,
     })
   }
 }
