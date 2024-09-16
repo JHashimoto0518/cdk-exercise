@@ -1,6 +1,7 @@
 import { Stack, StackProps, RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { AttributeType, ProjectionType, Table } from 'aws-cdk-lib/aws-dynamodb';
+import { AttributeType, ProjectionType, Table, TableEncryption } from 'aws-cdk-lib/aws-dynamodb';
+import { Key } from 'aws-cdk-lib/aws-kms';
 
 export class DynamodbStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -15,6 +16,24 @@ export class DynamodbStack extends Stack {
       tableName: 'items',
       readCapacity: 1,
       writeCapacity: 1,
+      removalPolicy: RemovalPolicy.DESTROY, // default RemovalPolicy is RETAIN
+    });
+
+    // simple table with encryption using CMK
+    const cmk = new Key(this, 'TableEncryptionKey', {
+      description: 'CMK for DynamoDB table encryption',
+      enableKeyRotation: true,
+    });
+    const encryptionTableWithCmk = new Table(this, 'items', {
+      partitionKey: {
+        name: 'itemId',
+        type: AttributeType.STRING
+      },
+      tableName: 'items',
+      readCapacity: 1,
+      writeCapacity: 1,
+      encryption: TableEncryption.CUSTOMER_MANAGED,
+      encryptionKey: cmk,
       removalPolicy: RemovalPolicy.DESTROY, // default RemovalPolicy is RETAIN
     });
 
