@@ -11,7 +11,6 @@ export class CloudfrontStack extends cdk.Stack {
 
     // S3 Bucket
     const bucket = new s3.Bucket(this, 'HostingBucket', {
-      // bucketName: '20240913-angel-calendar',
       enforceSSL: true,
     });
 
