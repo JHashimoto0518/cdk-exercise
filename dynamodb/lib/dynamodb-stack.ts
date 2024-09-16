@@ -29,7 +29,7 @@ export class DynamodbStack extends Stack {
         name: 'itemId',
         type: AttributeType.STRING
       },
-      tableName: 'items',
+      tableName: 'encItems',
       readCapacity: 1,
       writeCapacity: 1,
       encryption: TableEncryption.CUSTOMER_MANAGED,
