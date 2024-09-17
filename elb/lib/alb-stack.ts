@@ -3,6 +3,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as elbv2_tg from 'aws-cdk-lib/aws-elasticloadbalancingv2-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as kms from 'aws-cdk-lib/aws-kms';
 import { Construct } from 'constructs';
 
 // ref: certificate
@@ -82,10 +83,23 @@ export class AlbStack extends Stack {
     })
 
     // access log bucket
-    const accessLogBucket = new s3.Bucket(this, 'AccessLogBucket', {
+    const albAccessLogBucket = new s3.Bucket(this, 'AccessLogBucket', {
       // https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
       // > The bucket must use Amazon S3-managed keys (SSE-S3).
       encryption: s3.BucketEncryption.S3_MANAGED,
+      removalPolicy: RemovalPolicy.DESTROY,
+    })
+    const cmk = new kms.Key(this, 'AccessLogBucketKmsKey', {
+      enableKeyRotation: false,
+    })
+    const nlbAccessLogBucket = new s3.Bucket(this, 'NlbAccessLogBucket', {
+      // OK
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      // OK (update)
+      // encryption: s3.BucketEncryption.KMS,
+      // encryptionKey: cmk,
+      // OK (update)
+      // encryption: s3.BucketEncryption.KMS_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
     })
 
@@ -98,6 +112,7 @@ export class AlbStack extends Stack {
       internetFacing: true,
       securityGroups: [nlbSg1, nlbSg2]
     })
+    nlb.logAccessLogs(nlbAccessLogBucket, 'nlb-access-log')
 
     // alb
     const alb = new elbv2.ApplicationLoadBalancer(this, 'Alb', {
@@ -108,8 +123,7 @@ export class AlbStack extends Stack {
       },
       securityGroup: albSg
     })
-    // enable access log
-    alb.logAccessLogs(accessLogBucket, 'alb-access-log')
+    alb.logAccessLogs(albAccessLogBucket, 'alb-access-log')
 
     const listener = alb.addListener('HttpListener', {
       port: 80,
@@ -125,7 +139,11 @@ export class AlbStack extends Stack {
     })
 
     new CfnOutput(this, 'AlbAccessLogBucketName', {
-      value: accessLogBucket.bucketName,
+      value: albAccessLogBucket.bucketName,
+    })
+
+    new CfnOutput(this, 'NlbAccessLogBucketName', {
+      value: nlbAccessLogBucket.bucketName,
     })
   }
 }
