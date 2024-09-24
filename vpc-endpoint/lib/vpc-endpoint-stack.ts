@@ -28,12 +28,20 @@ export class VpcEndpointStack extends Stack {
       restrictDefaultSecurityGroup: true,
     });
 
-    // add private endpoint for s3
+    // gateway endpoint for s3
     vpc.addGatewayEndpoint('S3Endpoint', {
       service: ec2.GatewayVpcEndpointAwsService.S3,
       subnets: [
         { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
       ]
+    });
+
+    // interface endpoint for rds
+    const rdsEndpoint = vpc.addInterfaceEndpoint('RDSEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.RDS,
+      subnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED
+      }
     });
   }
 }
