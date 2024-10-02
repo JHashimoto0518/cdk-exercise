@@ -12,6 +12,14 @@ export class CloudfrontComplexStack extends cdk.Stack {
     // S3 Bucket
     const bucket = new s3.Bucket(this, 'HostingBucket', {
       enforceSSL: true,
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // not production
+    });
+    const logBucket = new s3.Bucket(this, 'LogBucket', {
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // not production
+      // https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html
+      // > Your bucket must have access control list (ACL) enabled. If you choose a bucket without ACL enabled from the CloudFront console, an error message will appear.
+      // The S3 bucket that you specified for CloudFront logs does not enable ACL access: xxxxxx.s3.ap-northeast-1.amazonaws.com
+      objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_PREFERRED,
     });
 
     // CloudFront
@@ -33,6 +41,7 @@ export class CloudfrontComplexStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       },
+      logBucket: logBucket,
     });
 
     new CfnOutput(this, 'Distribution DomainName', { value: distribution.domainName })
