@@ -22,7 +22,17 @@ export class CloudfrontComplexStack extends cdk.Stack {
       objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_PREFERRED,
     });
 
-    // CloudFront
+
+    // cache policy
+    const customCachePolicy = new cloudfront.CachePolicy(this, 'CustomCachePolicy', {
+      defaultTtl: cdk.Duration.days(1),
+      minTtl: cdk.Duration.days(1),
+      maxTtl: cdk.Duration.days(1),
+      cookieBehavior: cloudfront.CacheCookieBehavior.denyList('example-cookie', 'another-cookie'),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all()
+    });
+
+    // distribution
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultRootObject: 'index.html',
       additionalBehaviors: {
@@ -30,7 +40,7 @@ export class CloudfrontComplexStack extends cdk.Stack {
           // no cache because dynamic content
           origin: new origins.HttpOrigin('example.com'),
           allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          cachePolicy: customCachePolicy,
           originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         },
