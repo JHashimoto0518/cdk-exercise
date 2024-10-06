@@ -32,6 +32,26 @@ export class CloudfrontComplexStack extends cdk.Stack {
       queryStringBehavior: cloudfront.CacheQueryStringBehavior.all()
     });
 
+    // origin request policy
+    const customOriginRequestPolicy = new cloudfront.OriginRequestPolicy(this, 'CustomOriginRequestPolicy', {
+      headerBehavior: cloudfront.OriginRequestHeaderBehavior.all('CloudFront-Is-Android-Viewer'),
+      queryStringBehavior: cloudfront.OriginRequestQueryStringBehavior.denyList('example-query-string'),
+      cookieBehavior: cloudfront.OriginRequestCookieBehavior.allowList('example-cookie', 'another-cookie'),
+    });
+
+    // response headers policy
+    const customResponseHeadersPolicy = new cloudfront.ResponseHeadersPolicy(this, 'CustomResponseHeaderPolicy', {
+      customHeadersBehavior: {
+        customHeaders: [
+          {
+            header: 'example-header',
+            value: 'example-value',
+            override: true,
+          },
+        ],
+      },
+    });
+
     // distribution
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultRootObject: 'index.html',
@@ -41,7 +61,8 @@ export class CloudfrontComplexStack extends cdk.Stack {
           origin: new origins.HttpOrigin('example.com'),
           allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
           cachePolicy: customCachePolicy,
-          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+          originRequestPolicy: customOriginRequestPolicy,
+          responseHeadersPolicy: customResponseHeadersPolicy,
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         },
       },
