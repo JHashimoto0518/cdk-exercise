@@ -24,7 +24,7 @@ export class DynamodbStack extends Stack {
       description: 'CMK for DynamoDB table encryption',
       enableKeyRotation: true,
     });
-    const encryptionTableWithCmk = new Table(this, 'items', {
+    const encryptionTableWithCmk = new Table(this, 'encItems', {
       partitionKey: {
         name: 'itemId',
         type: AttributeType.STRING
@@ -75,5 +75,30 @@ export class DynamodbStack extends Stack {
       nonKeyAttributes: ['count, price']
     });
 
+    tableWithIndexes.addGlobalSecondaryIndex({
+      indexName: 'keysOnlyNameIndex',
+      partitionKey: {
+        name: 'name',
+        type: AttributeType.STRING
+      },
+      sortKey: {
+        name: 'itemId',
+        type: AttributeType.STRING
+      },
+      projectionType: ProjectionType.KEYS_ONLY
+    });
+
+    tableWithIndexes.addGlobalSecondaryIndex({
+      indexName: 'allNameIndex',
+      partitionKey: {
+        name: 'name',
+        type: AttributeType.STRING
+      },
+      sortKey: {
+        name: 'itemId',
+        type: AttributeType.STRING
+      },
+      projectionType: ProjectionType.ALL
+    });
   }
 }
