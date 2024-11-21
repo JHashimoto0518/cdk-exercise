@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as elbv2_tg from 'aws-cdk-lib/aws-elasticloadbalancingv2-targets';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -22,7 +23,7 @@ export class Web3TierStack extends cdk.Stack {
     // Create ACM certificate
     const certificate = new acm.Certificate(this, 'Certificate', {
       domainName: domainName,
-      // Add CNAME record to external DNS provider manually
+      // Note: Add CNAME and NS records to external DNS provider manually
       // See: https://docs.aws.amazon.com/ja_jp/acm/latest/userguide/dns-validation.html
       validation: acm.CertificateValidation.fromDns()
     });
@@ -41,7 +42,7 @@ export class Web3TierStack extends cdk.Stack {
         {
           cidrMask: 24,
           name: 'Private',
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
         }
       ],
       // remove all rules from default security group
@@ -55,23 +56,35 @@ export class Web3TierStack extends cdk.Stack {
       allowAllOutbound: true,
       description: 'security group for alb'
     })
-    albSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'allow http traffic from anywhere')
+    albSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.HTTPS, 'allow https traffic from internet')
 
     const ec2Sg = new ec2.SecurityGroup(this, 'Ec2Sg', {
       vpc,
       allowAllOutbound: true,
       description: 'security group for ec2'
     })
-    ec2Sg.connections.allowFrom(albSg, ec2.Port.tcp(80), 'allow http traffic from alb')
+    ec2Sg.connections.allowFrom(albSg, ec2.Port.HTTP, 'allow http traffic from alb')
 
     // Create ec2
+    const userData = ec2.UserData.forLinux({
+      shebang: '#!/bin/bash',
+    })
+    userData.addCommands(
+      // setup httpd
+      'yum update -y',
+      'yum install -y httpd',
+      'systemctl start httpd',
+      'systemctl enable httpd',
+      'echo "This is a sample website." > /var/www/html/index.html',
+    )
+
     const ec2Ins = new ec2.Instance(this, 'Ec2', {
       instanceName: 'ec2',
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
       machineImage: ec2.MachineImage.latestAmazonLinux2023(),
       vpc,
       vpcSubnets: vpc.selectSubnets({
-        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
       }),
       securityGroup: ec2Sg,
       blockDevices: [
@@ -82,6 +95,9 @@ export class Web3TierStack extends cdk.Stack {
           }),
         },
       ],
+      userData,
+      ssmSessionPermissions: true,
+      propagateTagsToVolumeOnCreation: true,
     })
 
     // Create alb
@@ -104,6 +120,41 @@ export class Web3TierStack extends cdk.Stack {
       targets: [new elbv2_tg.InstanceTarget(ec2Ins)],
       port: 80
     })
+
+    // Create WAF
+    const webAcl = new wafv2.CfnWebACL(this, 'WebACL', {
+      defaultAction: { allow: {} },
+      scope: 'REGIONAL',
+      visibilityConfig: {
+        cloudWatchMetricsEnabled: true,
+        metricName: 'WebACL',
+        sampledRequestsEnabled: true,
+      },
+      rules: [
+        {
+          name: 'AWS-AWSManagedRulesCommonRuleSet',
+          priority: 1,
+          statement: {
+            managedRuleGroupStatement: {
+              vendorName: 'AWS',
+              name: 'AWSManagedRulesCommonRuleSet',
+            },
+          },
+          overrideAction: { none: {} },
+          visibilityConfig: {
+            cloudWatchMetricsEnabled: true,
+            metricName: 'AWSManagedRulesCommonRuleSet',
+            sampledRequestsEnabled: true,
+          },
+        },
+      ],
+    });
+
+    // Associate WAF with ALB
+    new wafv2.CfnWebACLAssociation(this, 'WebACLAssociation', {
+      resourceArn: alb.loadBalancerArn,
+      webAclArn: webAcl.attrArn,
+    });
 
     // Create alias record
     const albAliasRecord = new route53.ARecord(this, 'AlbAliasRecord', {
